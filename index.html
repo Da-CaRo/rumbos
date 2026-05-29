@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <title>Rumbos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/qrious@4.0.2/dist/qrious.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.3.2/css/flag-icons.min.css" />
+    <script src="https://cdn.jsdelivr.net/gh/Da-CaRo/site-configs@main/control.js" data-web="rumbos"></script>
+
+    <style>
+        /* 1. DEFINICIÓN DE VARIABLES DE COLOR */
+        :root {
+            --color-acento: #e48433;
+            --color-fondo: #182C3A;
+            --color-tarjeta: #1F2937;
+
+            --color-texto: #F3F4F6;
+            --color-texto-tarjeta: #9CA3AF;
+            --color-borde-tarjeta: #374151;
+        }
+
+        /* 2. APLICACIÓN DE VARIABLES A LOS ESTILOS GLOBALMENTE */
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            background-color: var(--color-fondo);
+            color: var(--color-texto);
+        }
+
+        /* Para usar una fuente monoespaciada en títulos específicos */
+        .font-code {
+            font-family: 'Space Mono', ui-monospace, SFMono-Regular, monospace;
+        }
+
+        /* Para usar una fuente de rumbos en títulos específicos */
+        .font-rumbos {
+            font-family: 'Cinzel Decorative', sans-serif;
+            letter-spacing: 0.1em;
+        }
+
+        /* Sobrescribir las clases de Tailwind con las variables (para el color de acento) */
+        .text-acento {
+            color: var(--color-acento);
+        }
+
+        .text-tarjeta {
+            color: var(--color-texto-tarjeta);
+        }
+
+        .hover-acento:hover {
+            color: var(--color-acento);
+        }
+
+        .bg-tarjeta {
+            background-color: var(--color-tarjeta);
+        }
+
+
+        .hex-grid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .hex-row {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: -13px;
+            /* Entrelazado para móviles */
+        }
+
+        .hexagon {
+            width: 48px;
+            /* Tamaño compacto para móviles */
+            height: 54px;
+            background-color: #374151;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            transition: all 0.2s ease;
+        }
+
+        /* Escalado para pantallas medianas (Tablets) */
+        @media (min-width: 480px) {
+            .hex-row {
+                gap: 5px;
+                margin-bottom: -16px;
+            }
+
+            .hexagon {
+                width: 64px;
+                height: 72px;
+            }
+        }
+
+        /* Escalado para pantallas grandes (Escritorio) */
+        @media (min-width: 768px) {
+            .hex-row {
+                gap: 6px;
+                margin-bottom: -18px;
+            }
+
+            .hexagon {
+                width: 76px;
+                height: 86px;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen antialiased">
+    <header class="bg-gray-900 shadow-md p-4 border-b border-gray-800 top-0">
+        <div class="max-w-7xl mx-auto flex justify-between items-center py-0 relative">
+            <div class="flex items-center space-x-2">
+                <img src="img/favicon.png" alt="Icono Rumbos" class="h-8 w-8">
+                <h1 class="text-3xl font-extrabold text-acento font-rumbos">
+                    Rumbos
+                </h1>
+            </div>
+            <div id="current-turn"
+                class="bg-tarjeta p-2 rounded-lg text-acento whitespace-nowrap text-lg font-bold absolute top-1/2 -translate-y-1/2 right-4 hidden md:block">
+                Esperando inicio...
+            </div>
+        </div>
+    </header>
+
+    <div id="start-buttons">
+        <div class="py-8 md:py-12">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+
+                <h1 class="text-5xl md:text-6xl font-extrabold mb-4 leading-tight">
+                    <span class="font-rumbos text-acento">Explora</span> las conexiones
+                </h1>
+                <p class="text-xl text-tarjeta mb-12 max-w-2xl mx-auto">
+                    Una isla hexagonal de <span class="font-rumbos text-acento font-bold">37 losetas</span> te separa de
+                    tu
+                    destino.
+                    Interpreta las coordenadas del Guía, traza tu camino y evita las trampas del terreno.
+                </p>
+            </div>
+
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!--
+                    <div
+                        class="bg-tarjeta p-6 rounded-lg shadow-xl border border-tarjeta transition duration-300 h-full flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-4">
+                                <span class="text-acento text-4xl block">🗂️</span>
+                                <h3 class="text-4xl font-bold">Misiones</h3>
+                            </div>
+                            <p class="text-tarjeta text-base">
+                            <div class="flex flex-col space-y-2 mb-4">
+                                <select id="mode-select"
+                                    class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition duration-150">
+                                </select>
+                                <select id="timer-select"
+                                    class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition duration-150">
+                                </select>
+                            </div>
+                            </p>
+                        </div>
+                        <a href="https://da-caro.github.io/setup-and-play/rumbos.html" target="_blank" class="block">
+                            <span class="mt-5 inline-block text-sm font-medium text-acento hover:underline">Ver
+                                Instrucciones →</span></a>
+                    </div>
+                -->
+
+                    <div
+                        class="bg-tarjeta p-6 rounded-lg shadow-xl border border-tarjeta transition duration-300 h-full flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-4">
+                                <span class="text-acento text-4xl block">🚩</span>
+                                <h3 class="text-4xl font-bold">Modo Carrera</h3>
+                            </div>
+                            <h3 class="text-xl font-bold mb-2 text-tarjeta">Selecciona quien dará el primer paso.</h3>
+                            <p class="text-texto-gris text-base">
+                            <div class="flex flex-col space-y-2">
+                                <button id="start-random-btn-2"
+                                    class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition duration-150">
+                                    Empieza Aleatorio 🎲
+                                </button>
+                                <hr class="border-gray-700my-2">
+                                <button id="start-blue-btn-2"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-150">
+                                    Empieza Azul 🔵
+                                </button>
+                                <button id="start-red-btn-2"
+                                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-150">
+                                    Empieza Rojo 🔴
+                                </button>
+                            </div>
+                            </p>
+                        </div>
+                    </div>
+
+
+                    <div
+                        class="bg-tarjeta p-6 rounded-lg shadow-xl border border-tarjeta h-full flex flex-col justify-between max-w-md mx-auto">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-4">
+                                <span class="text-acento text-4xl block">🗺️</span>
+                                <h3 class="text-4xl font-bold">Modo Expedición</h3>
+                            </div>
+                            <p class="text-xl font-bold mb-2 text-tarjeta">Selecciona cómo deseas explorar los Rumbos de
+                                la Isla
+                                Secreta.</p>
+                            <div class="flex flex-col space-y-3">
+                                <button id="start-coop-btn"
+                                    class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150">
+                                    Modo Cooperativo 🎒 (Vs. La Isla)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <main class="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+
+        <div id="game-layout" class="flex flex-col lg:flex-row lg:space-x-8 hidden">
+
+            <div id="control-bar-wrapper"
+                class="flex flex-col sm:flex-row lg:flex-col justify-between items-center w-full lg:w-64 mb-6 lg:mb-0">
+
+                <div id="game-stats"
+                    class="flex justify-between items-center w-full sm:w-auto lg:w-full text-xl sm:text-2xl font-semibold mb-4 sm:mb-0 lg:mb-4 space-x-4 lg:space-x-0 lg:flex-col lg:space-y-4 hidden">
+                    <div class="flex flex-wrap items-center justify-around gap-4 text-center">
+
+                        <div id="marcador-cooperativo" class="hidden grid grid-cols-4 lg:grid-cols-1 gap-4 w-full">
+
+                            <div
+                                class="bg-gray-900 border-2 border-cyan-800 rounded-lg p-3 min-w-[150px] shadow-inner flex flex-col gap-2">
+                                <span class="text-xs text-blue-300 font-bold uppercase tracking-wider">💧Agua</span>
+                                <div id="coop-agua" class="text-sm font-bold font-mono text-white mt-1">-</div>
+                            </div>
+
+
+                            <div
+                                class="bg-gray-900 border-2 border-cyan-800 rounded-lg p-3 min-w-[150px] shadow-inner flex flex-col gap-2">
+                                <span class="text-xs text-blue-300 font-bold uppercase tracking-wider">🪣Pozos</span>
+                                <div id="coop-agua-encontrada" class="text-sm font-bold font-mono text-white mt-1">-
+                                </div>
+                            </div>
+
+                            <div
+                                class="bg-gray-900 border-2 border-yellow-600 rounded-lg p-3 min-w-[150px] shadow-inner flex flex-col gap-2">
+                                <span class="text-xs text-yellow-500 font-bold uppercase tracking-wider">🪙
+                                    Tesoros</span>
+                                <div id="coop-tesoros" class="text-sm font-bold font-mono text-white mt-1">-</div>
+                            </div>
+
+                            <div
+                                class="bg-gray-900 border-2 border-orange-800 rounded-lg p-3 min-w-[150px] shadow-inner flex flex-col gap-2">
+                                <span class="text-xs text-orange-400 font-bold uppercase tracking-wider">🪤
+                                    Trampas</span>
+                                <div id="coop-trampas" class="text-sm font-bold font-mono text-white mt-1">-</div>
+                            </div>
+
+                            <div
+                                class="bg-gray-900 border-2 border-red-900 rounded-lg p-3 min-w-[150px] shadow-inner flex flex-col gap-2">
+                                <span class="text-xs text-red-400 font-bold uppercase tracking-wider">🪤
+                                    Maldiciones</span>
+                                <div id="coop-maldiciones" class="text-sm font-bold font-mono text-white mt-1">-</div>
+                            </div>
+
+                        </div>
+
+                        <div id="marcador-equipos" class="hidden grid grid-cols-2 lg:grid-cols-1 gap-4 w-full">
+                            <div class="bg-blue-950 border-2 border-blue-600 rounded-lg p-3 min-w-[150px] shadow-lg">
+                                <span class="text-xs text-blue-300 font-bold uppercase tracking-wider">🔵 Equipo
+                                    Azul</span>
+                                <div id="team-azul-score" class="text-sm font-bold font-mono text-white mt-1">-</div>
+                                <div id="team-azul-curse" class="text-sm font-bold font-mono text-white mt-1">-</div>
+                            </div>
+                            <div class="bg-red-950 border-2 border-red-600 rounded-lg p-3 min-w-[150px] shadow-lg">
+                                <span class="text-xs text-red-300 font-bold uppercase tracking-wider">🔴 Equipo
+                                    Rojo</span>
+                                <div id="team-rojo-score" class="text-sm font-bold font-mono text-white mt-1">-</div>
+                                <div id="team-rojo-curse" class="text-sm font-bold font-mono text-white mt-1">-</div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div id="game-controls"
+                    class="flex space-x-2 w-full sm:w-auto lg:w-full lg:justify-start lg:space-x-0 lg:flex-col lg:space-y-2 mt-4 sm:mt-0 lg:mt-0">
+
+                    <div class="flex space-x-2 w-full">
+                        <button id="share-key-btn"
+                            class="flex-1 py-3 px-2 bg-gray-700 hover:bg-gray-600 text-blue-400 font-bold rounded-full transition duration-150 flex items-center justify-center text-sm disabled:opacity-50 hidden"
+                            title="Generar Enlace Clave">
+                            🫆 Clave
+                        </button>
+                        <button id="show-key-btn"
+                            class="flex-1 py-3 px-2 bg-gray-700 hover:bg-gray-600 text-purple-400 font-bold rounded-full transition duration-150 flex items-center justify-center text-sm disabled:opacity-50 hidden"
+                            title="Ver Clave Secreta">
+                            👁️ Clave
+                        </button>
+                        <button id="reset-game-btn"
+                            class="flex-1 py-3 px-2 bg-gray-700 hover:bg-gray-600 text-red-400 font-bold rounded-full transition duration-150 flex items-center justify-center text-sm disabled:opacity-50 hidden"
+                            title="Acabar Partida">
+                            🛑 Salir
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+            <div id="game-board" class="grid grid-cols-5 gap-3 sm:gap-4 md:gap-5 w-full lg:flex-1 aspect-[16/9] ">
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="bg-gray-900 border-t border-gray-800 mt-16 py-4">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left">
+
+                <p class="text-xs text-tarjeta mb-4 md:mb-0">
+                    &copy; <span id="currentYearFooter"></span> <span class="font-code">
+                        Da_CaRo
+                    </span>
+                </p>
+
+                <div class="flex space-x-6 items-center">
+                    <a href="https://da-caro.github.io/labs" target="_blank"
+                        class="text-tarjeta hover-acento transition duration-300 text-sm">
+                        Labs
+                    </a>
+                    <a href="https://github.com/da-caro" target="_blank"
+                        class="text-tarjeta hover-acento transition duration-300 text-sm">
+                        GitHub
+                    </a>
+                    <button id="clear-storage-btn" class="text-tarjeta hover-acento transition duration-300 text-sm">
+                        Borrar Variables
+                    </button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        document.getElementById('currentYearFooter').textContent = new Date().getFullYear();
+
+        // Importar las funciones y el motor del juego
+        import { TIPOS_CARTA } from './js/config.js';
+
+        import * as Game from './js/game.js';
+        import * as UI from './js/ui.js';
+        import * as Storage from './js/storage.js'
+
+        // =========================================================
+        // INICIO: DOMContentLoaded
+        // =========================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            const claveUrl = Game.obtenerEstadoCodificadoURL();
+
+            // 1. VERIFICAR SI HAY UNA CLAVE EN LA URL (LÍDER DE ESPÍAS)
+            if (claveUrl) {
+                // Si hay clave en la URL, cargar el estado decodificado y mostrar el tablero de clave.
+                UI.mostrarEstadisticas();
+                UI.mostrarTablero();
+                Game.mostrarClaveSecretaURL(claveUrl);
+                return;
+            }
+
+            // 2. Intentar cargar la partida guardada
+            if (Game.initGame()) {
+                // Si la carga fue exitosa, mostrar las estadísticas
+                UI.mostrarEstadisticas();
+                UI.mostrarTablero();
+            } else {
+                // Si no hay partida guardada o la carga falló, mostrar el estado inicial.
+                document.getElementById('start-buttons').classList.remove('hidden');
+            }
+
+
+
+
+
+
+
+
+            document.getElementById('reset-game-btn').addEventListener('click', Game.reiniciarPartida);
+            document.getElementById('share-key-btn').addEventListener('click', Game.generarEnlaceClave);
+
+            // Ver clave secreta (usa el tablero lógico del motor del juego)
+            document.getElementById('show-key-btn').addEventListener('click', () => {
+                // 1. Mostrar el diálogo de confirmación y capturar la respuesta
+                const confirmar = confirm("ADVERTENCIA: ¿Estás seguro de que quieres ver la clave secreta?\nSolo el Líder de Espías debe ver esta información. Si eres un Agente de Campo, ¡esto arruinará el juego!");
+
+                // 2. Solo procede si el usuario pulsa ACEPTAR (confirmar es true)
+                if (confirmar) {
+                    UI.mostrarClaveEnAlerta(Game.getTableroLogico());
+                }
+                // Si pulsa CANCELAR, no se hace nada.
+            });
+
+
+            // Listener Cooperativo
+            document.getElementById('start-coop-btn').addEventListener('click', () => {
+                UI.mostrarEstadisticas();
+                UI.mostrarTablero();
+                Game.startNewGame('cooperativo');
+            });
+
+            // Listeners Competitivos
+            document.getElementById('start-blue-btn-2').addEventListener('click', () => {
+                UI.mostrarEstadisticas();
+                UI.mostrarTablero();
+                Game.startNewGame('equipos', 'blue');
+            });
+
+            document.getElementById('start-red-btn-2').addEventListener('click', () => {
+                UI.mostrarEstadisticas();
+                UI.mostrarTablero();
+                Game.startNewGame('equipos', 'red');
+            });
+
+            document.getElementById('start-random-btn-2').addEventListener('click', () => {
+                UI.mostrarEstadisticas();
+                UI.mostrarTablero();
+                const randomTeam = Math.random() < 0.5 ? 'blue' : 'red';
+                Game.startNewGame('equipos', randomTeam);
+            });
+
+
+            // Borrar las variables almacenadas
+            document.getElementById('clear-storage-btn').addEventListener('click', () => {
+                const confirmClear = confirm("ADVERTENCIA: ¿Estás seguro de que quieres borrar el estado de la partida y las palabras usadas guardadas localmente?");
+                if (confirmClear) {
+                    Storage.limpiarTodasVariables(); // Llama a la nueva función de Storage
+                    // Retroalimentación al usuario y reinicio para cargar el estado limpio
+                    alert("¡Variables de juego borradas! La página se reiniciará para aplicar los cambios.");
+                    window.location.reload();
+                }
+            });
+        });
+    </script>
+
+    <div id="qr-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50 p-4"
+        onclick="this.classList.add('hidden')">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-2xl max-w-sm w-full text-center"
+            onclick="event.stopPropagation()">
+            <h3 id="qr-instructions" class="text-2xl font-bold text-acento mb-4">Escanea la Clave Secreta</h3>
+            <pre id="clave-code"
+                class="text-yellow-400 text-xl font-mono p-4 bg-gray-900 border border-gray-700 rounded-lg whitespace-pre text-center"></pre>
+            <canvas id="qr-canvas" class="w-full h-auto mx-auto border-4 border-gray-700 rounded-lg"></canvas>
+            <p class="text-sm text-gray-400 mt-4">Haz clic fuera para cerrar.</p>
+        </div>
+    </div>
+</body>
+
+</html>
